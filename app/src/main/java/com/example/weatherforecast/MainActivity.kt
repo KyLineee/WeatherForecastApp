@@ -4,7 +4,9 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,19 +16,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -38,6 +51,7 @@ import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.example.weatherforecast.ui.theme.BlueLight
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 const val API_KEY = ""
@@ -46,24 +60,30 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            HomeScreen(context = this)
+            val context = this
+            Image(
+                painter = painterResource(id = R.drawable.weather),
+                contentDescription = "im1",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.5f),
+                contentScale = ContentScale.FillBounds
+            )
+            Column {
+                MainCard(context = context)
+                TabLayout()
+            }
         }
     }
 }
 
 @Composable
-fun HomeScreen(context: Context) {
-    Image(
-        painter = painterResource(id = R.drawable.weather),
-        contentDescription = "im1",
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(0.5f),
-        contentScale = ContentScale.FillBounds
-    )
+fun MainCard(context: Context) {
+    val state = remember {
+        mutableStateOf("Unknown")
+    }
     Column(
         modifier = Modifier
-            .fillMaxSize()
             .padding(5.dp)
     ) {
         Card(
@@ -91,27 +111,54 @@ fun HomeScreen(context: Context) {
                         modifier = Modifier.size(35.dp)
                     )
                 }
-                Greeting("Penza", context)
-            }
-        }
-    }
-}
+                Text(
+                    text = "Penza",
+                    style = TextStyle(fontSize = 24.sp),
+                    color = Color.White
+                )
+                Text(
+                    modifier = Modifier.clickable {
+                        getResult("Penza", state, context)
+                    },
+                    text = "${state.value} C",
+                    style = TextStyle(fontSize = 65.sp),
+                    color = Color.White
+                )
+                Text(
+                    text = "Sunny",
+                    style = TextStyle(fontSize = 16.sp),
+                    color = Color.White
+                )
 
-@Composable
-fun Greeting(name: String, context: Context){
-    val state = remember {
-        mutableStateOf("Unknown")
-    }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Temp in $name = ${state.value} C")
-        Button(onClick = {
-            getResult(name, state, context)
-        },
-            modifier = Modifier.padding(20.dp)) {
-            Text(text = "Refresh")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = {
+
+                    }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_searched),
+                            contentDescription = "im3",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = "5C/-3C",
+                        style = TextStyle(fontSize = 16.sp),
+                        color = Color.White
+                    )
+                    IconButton(onClick = {
+
+                    }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.cloud_sync),
+                            contentDescription = "im3",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -133,4 +180,51 @@ private fun getResult(city: String, state: MutableState<String>, context: Contex
         }
     )
     queue.add(stringRequest)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TabLayout() {
+    val pagerState = rememberPagerState { 2 }
+    val tabList = listOf("HOURS", "DAYS")
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .padding(start = 5.dp, end = 5.dp)
+            .clip(RoundedCornerShape(5.dp))
+    ) {
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            contentColor = Color.White,
+            indicator = {tabPositions ->
+                TabRowDefaults.Indicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                    color = Color.White
+                )
+            },
+            containerColor = BlueLight
+        ) {
+            tabList.forEachIndexed { index, text ->
+                Tab(
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                    text = {
+                        Text(text = text)
+                    }
+                )
+            }
+        }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1.0f)
+        ) {index ->
+
+        }
+
+    }
 }
