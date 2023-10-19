@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -50,6 +53,7 @@ import coil.compose.AsyncImage
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.example.weatherforecast.data.WeatherModel
 import com.example.weatherforecast.ui.theme.BlueLight
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -197,7 +201,7 @@ fun TabLayout() {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             contentColor = Color.White,
-            indicator = {tabPositions ->
+            indicator = { tabPositions ->
                 TabRowDefaults.Indicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
                     color = Color.White
@@ -221,10 +225,79 @@ fun TabLayout() {
         }
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.weight(1.0f)
-        ) {index ->
-
+            modifier = Modifier.weight(1.0f),
+            verticalAlignment = Alignment.Top
+            ) { index ->
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(
+                    listOf(
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        ),
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        ),
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        ),
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        ),
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        ),
+                        WeatherModel(
+                            "London",
+                            "10:00",
+                            "5 C",
+                            "Sunny",
+                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
+                            "",
+                            "",
+                            ""
+                        )
+                    )
+                ) { item ->
+                    ListItem(item)
+                }
+            }
         }
-
     }
 }
