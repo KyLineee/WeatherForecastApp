@@ -35,7 +35,10 @@ fun ListItem(item: WeatherModel) {
             Column(
                 modifier = Modifier.padding(top = 5.dp, start = 8.dp, bottom = 5.dp)
             ) {
-                Text(text = item.time)
+                Text(
+                    text = item.time,
+                    color = Color.White
+                )
                 Text(
                     text = item.condition,
                     color = Color.White
@@ -43,7 +46,7 @@ fun ListItem(item: WeatherModel) {
             }
             Text(
                 style = TextStyle(fontSize = 24.sp),
-                text = item.currentTemp.ifEmpty { "${item.maxTemp}/${item.maxTemp} C" },
+                text = item.currentTemp.ifEmpty { "${item.maxTemp}/${item.minTemp} C" },
                 color = Color.White
             )
             AsyncImage(

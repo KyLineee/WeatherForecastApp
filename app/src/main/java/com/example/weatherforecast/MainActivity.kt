@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
                 contentScale = ContentScale.FillBounds
             )
             Column {
-                MainCard()
+                MainCard(daysList)
                 TabLayout(daysList)
             }
         }
@@ -85,7 +86,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainCard() {
+fun MainCard(daysList: MutableState<List<WeatherModel>>) {
+
     Column(
         modifier = Modifier
             .padding(5.dp)
@@ -105,28 +107,28 @@ fun MainCard() {
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 8.dp, start = 8.dp),
-                        text = "7 Okt 2023 21:00",
+                        text = if (daysList.value.isNotEmpty()) daysList.value[0].time else "",
                         style = TextStyle(fontSize = 15.sp),
                         color = Color.White
                     )
                     AsyncImage(
-                        model = "https://cdn.weatherapi.com/weather/64x64/night/113.png",
+                        model = if (daysList.value.isNotEmpty()) "https:" + daysList.value[0].icon else "",
                         contentDescription = "im2",
                         modifier = Modifier.size(35.dp)
                     )
                 }
                 Text(
-                    text = "Penza",
+                    text = if (daysList.value.isNotEmpty()) daysList.value[0].city else "",
                     style = TextStyle(fontSize = 24.sp),
                     color = Color.White
                 )
                 Text(
-                    text = " C",
+                    text = if (daysList.value.isNotEmpty()) daysList.value[0].currentTemp else "",
                     style = TextStyle(fontSize = 65.sp),
                     color = Color.White
                 )
                 Text(
-                    text = "Sunny",
+                    text = if (daysList.value.isNotEmpty()) daysList.value[0].condition else "",
                     style = TextStyle(fontSize = 16.sp),
                     color = Color.White
                 )
@@ -145,7 +147,7 @@ fun MainCard() {
                         )
                     }
                     Text(
-                        text = "5C/-3C",
+                        text = if (daysList.value.isNotEmpty()) daysList.value[0].maxTemp + "/" + daysList.value[0].minTemp + " C" else "",
                         style = TextStyle(fontSize = 16.sp),
                         color = Color.White
                     )
@@ -198,7 +200,7 @@ private fun getResult(city: String, context: Context, daysList: MutableState<Lis
     val url = "https://api.weatherapi.com/v1/forecast.json" +
             "?key=$API_KEY" +
             "&q=$city" +
-            "&days=3" +
+            "&days=7" +
             "&aqi=no" +
             "&alerts=no"
 
@@ -260,10 +262,10 @@ fun TabLayout(daysList: MutableState<List<WeatherModel>>) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(
+                itemsIndexed(
                     daysList.value
-                ) { item ->
-                    ListItem(item)
+                ) { i, item ->
+                    if(i != 0) ListItem(item)
                 }
             }
         }
