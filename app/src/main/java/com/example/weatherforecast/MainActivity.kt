@@ -64,7 +64,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val context = this
+            val daysList = remember {
+                mutableStateOf(listOf<WeatherModel>())
+            }
+            getResult("Penza", this, daysList)
             Image(
                 painter = painterResource(id = R.drawable.weather),
                 contentDescription = "im1",
@@ -74,18 +77,15 @@ class MainActivity : ComponentActivity() {
                 contentScale = ContentScale.FillBounds
             )
             Column {
-                MainCard(context = context)
-                TabLayout()
+                MainCard()
+                TabLayout(daysList)
             }
         }
     }
 }
 
 @Composable
-fun MainCard(context: Context) {
-    val state = remember {
-        mutableStateOf("Unknown")
-    }
+fun MainCard() {
     Column(
         modifier = Modifier
             .padding(5.dp)
@@ -121,10 +121,7 @@ fun MainCard(context: Context) {
                     color = Color.White
                 )
                 Text(
-                    modifier = Modifier.clickable {
-                        getResult("Penza", state, context)
-                    },
-                    text = "${state.value} C",
+                    text = " C",
                     style = TextStyle(fontSize = 65.sp),
                     color = Color.White
                 )
@@ -167,18 +164,50 @@ fun MainCard(context: Context) {
     }
 }
 
-private fun getResult(city: String, state: MutableState<String>, context: Context) {
-    val url = "https://api.weatherapi.com/v1/current.json" +
-            "?key=$API_KEY&" +
-            "q=$city" +
-            "&aqi=no"
+fun WeatherDay(response: String): List<WeatherModel> {
+    if (response.isEmpty()) return listOf()
+    val mainObj = JSONObject(response)
+    val list = ArrayList<WeatherModel>()
+    val city = mainObj.getJSONObject("location").getString("name")
+    val days = mainObj.getJSONObject("forecast").getJSONArray("forecastday")
+    for (i in 0 until days.length()) {
+        val item = days[i] as JSONObject
+        list.add(
+            WeatherModel(
+                city,
+                item.getString("date"),
+                "",
+                item.getJSONObject("day").getJSONObject("condition").getString("text"),
+                item.getJSONObject("day").getJSONObject("condition").getString("icon"),
+                item.getJSONObject("day").getString("maxtemp_c"),
+                item.getJSONObject("day").getString("mintemp_c"),
+                item.getJSONArray("hour").toString()
+            )
+        )
+    }
+
+    list[0] = list[0].copy(
+        time = mainObj.getJSONObject("current").getString("last_updated"),
+        currentTemp = mainObj.getJSONObject("current").getString("temp_c"),
+    )
+
+    return list
+}
+
+private fun getResult(city: String, context: Context, daysList: MutableState<List<WeatherModel>>) {
+    val url = "https://api.weatherapi.com/v1/forecast.json" +
+            "?key=$API_KEY" +
+            "&q=$city" +
+            "&days=3" +
+            "&aqi=no" +
+            "&alerts=no"
+
     val queue = Volley.newRequestQueue(context)
     val stringRequest = StringRequest(
         Request.Method.GET,
         url,
         { response ->
-            val obj = JSONObject(response)
-            state.value = obj.getJSONObject("current").getString("temp_c")
+            daysList.value = WeatherDay(response)
         },
         { error ->
         }
@@ -188,7 +217,7 @@ private fun getResult(city: String, state: MutableState<String>, context: Contex
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TabLayout() {
+fun TabLayout(daysList: MutableState<List<WeatherModel>>) {
     val pagerState = rememberPagerState { 2 }
     val tabList = listOf("HOURS", "DAYS")
     val scope = rememberCoroutineScope()
@@ -227,73 +256,12 @@ fun TabLayout() {
             state = pagerState,
             modifier = Modifier.weight(1.0f),
             verticalAlignment = Alignment.Top
-            ) { index ->
+        ) { index ->
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(
-                    listOf(
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        ),
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        ),
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        ),
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        ),
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        ),
-                        WeatherModel(
-                            "London",
-                            "10:00",
-                            "5 C",
-                            "Sunny",
-                            "//cdn.weatherapi.com/weather/64x64/night/113.png",
-                            "",
-                            "",
-                            ""
-                        )
-                    )
+                    daysList.value
                 ) { item ->
                     ListItem(item)
                 }
