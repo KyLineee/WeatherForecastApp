@@ -57,6 +57,7 @@ import com.android.volley.toolbox.Volley
 import com.example.weatherforecast.data.WeatherModel
 import com.example.weatherforecast.ui.theme.BlueLight
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 const val API_KEY = ""
@@ -68,7 +69,20 @@ class MainActivity : ComponentActivity() {
             val daysList = remember {
                 mutableStateOf(listOf<WeatherModel>())
             }
+            val currentDay = remember {
+                mutableStateOf(WeatherModel(
+                    "",
+                    "",
+                    "1",
+                    "",
+                    "",
+                    "1",
+                    "1",
+                    "",
+                ))
+            }
             getResult("Penza", this, daysList)
+            if(daysList.value.isNotEmpty()) currentDay.value = daysList.value[0]
             Image(
                 painter = painterResource(id = R.drawable.weather),
                 contentDescription = "im1",
@@ -78,16 +92,15 @@ class MainActivity : ComponentActivity() {
                 contentScale = ContentScale.FillBounds
             )
             Column {
-                MainCard(daysList)
-                TabLayout(daysList)
+                MainCard(currentDay)
+                TabLayout(daysList, currentDay)
             }
         }
     }
 }
 
 @Composable
-fun MainCard(daysList: MutableState<List<WeatherModel>>) {
-
+fun MainCard(currentDay: MutableState<WeatherModel>) {
     Column(
         modifier = Modifier
             .padding(5.dp)
@@ -107,28 +120,28 @@ fun MainCard(daysList: MutableState<List<WeatherModel>>) {
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 8.dp, start = 8.dp),
-                        text = if (daysList.value.isNotEmpty()) daysList.value[0].time else "",
+                        text = currentDay.value.time,
                         style = TextStyle(fontSize = 15.sp),
                         color = Color.White
                     )
                     AsyncImage(
-                        model = if (daysList.value.isNotEmpty()) "https:" + daysList.value[0].icon else "",
+                        model = "https:" + currentDay.value.icon,
                         contentDescription = "im2",
                         modifier = Modifier.size(35.dp)
                     )
                 }
                 Text(
-                    text = if (daysList.value.isNotEmpty()) daysList.value[0].city else "",
+                    text = currentDay.value.city,
                     style = TextStyle(fontSize = 24.sp),
                     color = Color.White
                 )
                 Text(
-                    text = if (daysList.value.isNotEmpty()) daysList.value[0].currentTemp else "",
+                    text = if(currentDay.value.currentTemp.isNotEmpty()) currentDay.value.currentTemp else "${currentDay.value.maxTemp}/${currentDay.value.minTemp} C",
                     style = TextStyle(fontSize = 65.sp),
                     color = Color.White
                 )
                 Text(
-                    text = if (daysList.value.isNotEmpty()) daysList.value[0].condition else "",
+                    text = currentDay.value.condition,
                     style = TextStyle(fontSize = 16.sp),
                     color = Color.White
                 )
@@ -147,7 +160,7 @@ fun MainCard(daysList: MutableState<List<WeatherModel>>) {
                         )
                     }
                     Text(
-                        text = if (daysList.value.isNotEmpty()) daysList.value[0].maxTemp + "/" + daysList.value[0].minTemp + " C" else "",
+                        text = currentDay.value.maxTemp + "/" + currentDay.value.minTemp,
                         style = TextStyle(fontSize = 16.sp),
                         color = Color.White
                     )
@@ -164,6 +177,29 @@ fun MainCard(daysList: MutableState<List<WeatherModel>>) {
             }
         }
     }
+}
+
+fun WeatherHour(hours: String): List<WeatherModel> {
+    if (hours.isEmpty()) return listOf()
+    val list = ArrayList<WeatherModel>()
+    val hourArray = JSONArray(hours)
+    for (i in 0 until hourArray.length()) {
+        val item = hourArray[i] as JSONObject
+        list.add(
+            WeatherModel(
+                "",
+                item.getString("time"),
+                item.getString("temp_c"),
+                item.getJSONObject("condition").getString("text"),
+                item.getJSONObject("condition").getString("icon"),
+                "",
+                "",
+                ""
+            )
+        )
+    }
+
+    return list
 }
 
 fun WeatherDay(response: String): List<WeatherModel> {
@@ -196,6 +232,19 @@ fun WeatherDay(response: String): List<WeatherModel> {
     return list
 }
 
+@Composable
+fun getList(list: List<WeatherModel>, currentDay: MutableState<WeatherModel>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        itemsIndexed(
+            list
+        ) { i, item ->
+            ListItem(item, currentDay)
+        }
+    }
+}
+
 private fun getResult(city: String, context: Context, daysList: MutableState<List<WeatherModel>>) {
     val url = "https://api.weatherapi.com/v1/forecast.json" +
             "?key=$API_KEY" +
@@ -219,7 +268,7 @@ private fun getResult(city: String, context: Context, daysList: MutableState<Lis
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TabLayout(daysList: MutableState<List<WeatherModel>>) {
+fun TabLayout(daysList: MutableState<List<WeatherModel>>, currentDay: MutableState<WeatherModel>) {
     val pagerState = rememberPagerState { 2 }
     val tabList = listOf("HOURS", "DAYS")
     val scope = rememberCoroutineScope()
@@ -259,15 +308,12 @@ fun TabLayout(daysList: MutableState<List<WeatherModel>>) {
             modifier = Modifier.weight(1.0f),
             verticalAlignment = Alignment.Top
         ) { index ->
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                itemsIndexed(
-                    daysList.value
-                ) { i, item ->
-                    if(i != 0) ListItem(item)
-                }
+            val list = when (index) {
+                0 -> WeatherHour(currentDay.value.hours)
+                1 -> daysList.value
+                else -> daysList.value
             }
+            getList(list, currentDay)
         }
     }
 }
