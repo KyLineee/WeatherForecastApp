@@ -15,9 +15,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
@@ -28,6 +33,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Tab
@@ -35,11 +42,14 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,8 +58,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
@@ -70,19 +82,21 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(listOf<WeatherModel>())
             }
             val currentDay = remember {
-                mutableStateOf(WeatherModel(
-                    "",
-                    "",
-                    "1",
-                    "",
-                    "",
-                    "1",
-                    "1",
-                    "",
-                ))
+                mutableStateOf(
+                    WeatherModel(
+                        "",
+                        "",
+                        "1",
+                        "",
+                        "",
+                        "1",
+                        "1",
+                        "",
+                    )
+                )
             }
             getResult("Penza", this, daysList)
-            if(daysList.value.isNotEmpty()) currentDay.value = daysList.value[0]
+            if (daysList.value.isNotEmpty()) currentDay.value = daysList.value[0]
             Image(
                 painter = painterResource(id = R.drawable.weather),
                 contentDescription = "im1",
@@ -91,8 +105,9 @@ class MainActivity : ComponentActivity() {
                     .alpha(0.5f),
                 contentScale = ContentScale.FillBounds
             )
+
             Column {
-                MainCard(currentDay)
+                MainCard(currentDay, daysList, this@MainActivity)
                 TabLayout(daysList, currentDay)
             }
         }
@@ -100,7 +115,28 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainCard(currentDay: MutableState<WeatherModel>) {
+fun MainCard(
+    currentDay: MutableState<WeatherModel>,
+    daysList: MutableState<List<WeatherModel>>,
+    context: Context
+) {
+    var showDialog by remember {
+        mutableStateOf(false)
+    }
+    val list = listOf(
+        "Moscow",
+        "Penza",
+        "Saint-Petersburg",
+        "Saratov",
+        "Sochi",
+        "Ryazan",
+        "Nizhniy Novgorod",
+        "Vladimir",
+        "Volgograd",
+        "Tver",
+        "Astrakhan",
+        "Murmansk"
+    )
     Column(
         modifier = Modifier
             .padding(5.dp)
@@ -136,7 +172,7 @@ fun MainCard(currentDay: MutableState<WeatherModel>) {
                     color = Color.White
                 )
                 Text(
-                    text = if(currentDay.value.currentTemp.isNotEmpty()) currentDay.value.currentTemp else "${currentDay.value.maxTemp}/${currentDay.value.minTemp} C",
+                    text = if (currentDay.value.currentTemp.isNotEmpty()) currentDay.value.currentTemp else "${currentDay.value.maxTemp}/${currentDay.value.minTemp} C",
                     style = TextStyle(fontSize = 65.sp),
                     color = Color.White
                 )
@@ -151,12 +187,19 @@ fun MainCard(currentDay: MutableState<WeatherModel>) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(onClick = {
-
+                        showDialog = true
                     }) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_searched),
                             contentDescription = "im3",
                             tint = Color.White
+                        )
+                    }
+                    if (showDialog == true) {
+                        citySelection(
+                            list,
+                            { showDialog = false },
+                            { showDialog = false }
                         )
                     }
                     Text(
@@ -165,7 +208,7 @@ fun MainCard(currentDay: MutableState<WeatherModel>) {
                         color = Color.White
                     )
                     IconButton(onClick = {
-
+                        getResult("Penza", context, daysList)
                     }) {
                         Icon(
                             painter = painterResource(id = R.drawable.cloud_sync),
@@ -173,6 +216,84 @@ fun MainCard(currentDay: MutableState<WeatherModel>) {
                             tint = Color.White
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun citySelection(
+    list: List<String>,
+    onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+) {
+    Dialog(onDismissRequest = { onDismissRequest() }) {
+        Card(
+            modifier = Modifier
+                .height(300.dp)
+                .width(200.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(BlueLight)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                citySpinner(list)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    TextButton(
+                        onClick = { onDismissRequest() },
+                        modifier = Modifier.padding(8.dp),
+                    ) {
+                        Text("Dismiss")
+                    }
+                    TextButton(
+                        onClick = { onConfirmation() },
+                        modifier = Modifier.padding(8.dp),
+                    ) { Text("Confirm") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun citySpinner(
+    list: List<String>
+) {
+    val selected = remember {
+        mutableStateOf(String())
+    }
+    LazyColumn(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize()
+    ){
+        items(list){ item ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .padding(top = 3.dp),
+                colors = CardDefaults.cardColors(BlueLight)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ){
+                    Text(
+                        text = item,
+                        modifier = Modifier.clickable {
+                            selected.value = item
+                        },
+                        color = Color.White
+                    )
                 }
             }
         }
