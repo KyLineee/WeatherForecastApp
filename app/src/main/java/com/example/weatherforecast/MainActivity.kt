@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,8 +44,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -76,6 +80,7 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.example.weatherforecast.data.WeatherModel
 import com.example.weatherforecast.ui.theme.BlueLight
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -83,9 +88,12 @@ import org.json.JSONObject
 const val API_KEY = ""
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val snackbarHostState = remember { SnackbarHostState() }
+            val scope = rememberCoroutineScope()
             val daysList = remember {
                 mutableStateOf(listOf<WeatherModel>())
             }
@@ -106,30 +114,45 @@ class MainActivity : ComponentActivity() {
             val city = remember { mutableStateOf("Penza") }
             getResult(city.value, this, daysList)
             if (daysList.value.isNotEmpty()) currentDay.value = daysList.value[0]
-            Image(
-                painter = painterResource(id = R.drawable.weather),
-                contentDescription = "im1",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(0.5f),
-                contentScale = ContentScale.FillBounds
-            )
 
-            Column {
-                MainCard(currentDay, daysList, city, this@MainActivity)
-                TabLayout(daysList, currentDay)
+
+            Scaffold(
+                snackbarHost = {
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        snackbar = { data -> customSnackbar(data) },
+                    )}
+            ) {padding ->
+                Image(
+                    painter = painterResource(id = R.drawable.weather),
+                    contentDescription = "im1",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(0.5f),
+                    contentScale = ContentScale.FillBounds
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    MainCard(currentDay, daysList, city, this@MainActivity, scope, snackbarHostState)
+                    TabLayout(daysList, currentDay)
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainCard(
     currentDay: MutableState<WeatherModel>,
     daysList: MutableState<List<WeatherModel>>,
     city: MutableState<String>,
-    context: Context
+    context: Context,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState
+
 ) {
     var showDialog by remember {
         mutableStateOf(false)
@@ -222,6 +245,12 @@ fun MainCard(
                     IconButton(
                         onClick = {
                             getResult(city.value, context, daysList)
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Updated!",
+                                    duration = SnackbarDuration.Short,
+                                )
+                            }
                         }
                     )
                     {
@@ -233,6 +262,35 @@ fun MainCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun customSnackbar(snackbarData: SnackbarData) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth(0.4f)
+            .height(70.dp)
+            .padding(bottom = 30.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = BlueLight,
+        shadowElevation = 22.dp,
+        tonalElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Updated!",
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                fontSize = 22.sp
+            )
         }
     }
 }
