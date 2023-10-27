@@ -2,6 +2,7 @@ package com.example.weatherforecast
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -29,14 +30,21 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -95,7 +103,8 @@ class MainActivity : ComponentActivity() {
                     )
                 )
             }
-            getResult("Penza", this, daysList)
+            val city = remember { mutableStateOf("Penza") }
+            getResult(city.value, this, daysList)
             if (daysList.value.isNotEmpty()) currentDay.value = daysList.value[0]
             Image(
                 painter = painterResource(id = R.drawable.weather),
@@ -107,17 +116,19 @@ class MainActivity : ComponentActivity() {
             )
 
             Column {
-                MainCard(currentDay, daysList, this@MainActivity)
+                MainCard(currentDay, daysList, city, this@MainActivity)
                 TabLayout(daysList, currentDay)
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainCard(
     currentDay: MutableState<WeatherModel>,
     daysList: MutableState<List<WeatherModel>>,
+    city: MutableState<String>,
     context: Context
 ) {
     var showDialog by remember {
@@ -198,6 +209,7 @@ fun MainCard(
                     if (showDialog == true) {
                         citySelection(
                             list,
+                            city,
                             { showDialog = false },
                             { showDialog = false }
                         )
@@ -207,9 +219,12 @@ fun MainCard(
                         style = TextStyle(fontSize = 16.sp),
                         color = Color.White
                     )
-                    IconButton(onClick = {
-                        getResult("Penza", context, daysList)
-                    }) {
+                    IconButton(
+                        onClick = {
+                            getResult(city.value, context, daysList)
+                        }
+                    )
+                    {
                         Icon(
                             painter = painterResource(id = R.drawable.cloud_sync),
                             contentDescription = "im3",
@@ -225,6 +240,7 @@ fun MainCard(
 @Composable
 fun citySelection(
     list: List<String>,
+    city: MutableState<String>,
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
 ) {
@@ -234,14 +250,14 @@ fun citySelection(
                 .height(300.dp)
                 .width(200.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(BlueLight)
+            colors = CardDefaults.cardColors(Color.Transparent)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
-                citySpinner(list)
+                citySpinner(list, city)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -251,7 +267,7 @@ fun citySelection(
                         onClick = { onDismissRequest() },
                         modifier = Modifier.padding(8.dp),
                     ) {
-                        Text("Dismiss")
+                        Text(text = "Dismiss")
                     }
                     TextButton(
                         onClick = { onConfirmation() },
@@ -265,33 +281,31 @@ fun citySelection(
 
 @Composable
 fun citySpinner(
-    list: List<String>
+    list: List<String>,
+    city: MutableState<String>
 ) {
-    val selected = remember {
-        mutableStateOf(String())
-    }
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
-    ){
-        items(list){ item ->
+    ) {
+        items(list) { item ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(40.dp)
-                    .padding(top = 3.dp),
+                    .padding(top = 3.dp)
+                    .clickable {
+                        city.value = item
+                    },
                 colors = CardDefaults.cardColors(BlueLight)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize(),
                     contentAlignment = Alignment.Center,
-                ){
+                ) {
                     Text(
                         text = item,
-                        modifier = Modifier.clickable {
-                            selected.value = item
-                        },
                         color = Color.White
                     )
                 }
