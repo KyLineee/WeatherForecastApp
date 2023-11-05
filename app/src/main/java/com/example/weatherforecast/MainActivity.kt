@@ -84,6 +84,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 const val API_KEY = ""
 
@@ -305,7 +310,7 @@ fun citySelection(
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(
             modifier = Modifier
-                .height(300.dp)
+                .height(280.dp)
                 .width(200.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(Color.Transparent)
@@ -315,23 +320,7 @@ fun citySelection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
-                citySpinner(list, city)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    TextButton(
-                        onClick = { onDismissRequest() },
-                        modifier = Modifier.padding(8.dp),
-                    ) {
-                        Text(text = "Dismiss")
-                    }
-                    TextButton(
-                        onClick = { onConfirmation() },
-                        modifier = Modifier.padding(8.dp),
-                    ) { Text("Confirm") }
-                }
+                citySpinner(list, city, onDismissRequest)
             }
         }
     }
@@ -340,7 +329,8 @@ fun citySelection(
 @Composable
 fun citySpinner(
     list: List<String>,
-    city: MutableState<String>
+    city: MutableState<String>,
+    onDismissRequest: () -> Unit,
 ) {
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -353,7 +343,8 @@ fun citySpinner(
                     .height(40.dp)
                     .padding(top = 3.dp)
                     .clickable {
-                        city.value = item
+                        city.value = item;
+                        onDismissRequest()
                     },
                 colors = CardDefaults.cardColors(BlueLight)
             ) {
@@ -376,8 +367,18 @@ fun WeatherHour(hours: String): List<WeatherModel> {
     if (hours.isEmpty()) return listOf()
     val list = ArrayList<WeatherModel>()
     val hourArray = JSONArray(hours)
+
+    val calendar = Calendar.getInstance()
+    val currentTime = calendar.timeInMillis
+
+
     for (i in 0 until hourArray.length()) {
         val item = hourArray[i] as JSONObject
+        val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+        format.timeZone = TimeZone.getTimeZone("GMT+2")
+        val date = format.parse(item.getString("time"))
+        val millis = date.time
+        if(currentTime > millis) continue
         list.add(
             WeatherModel(
                 "",
