@@ -29,7 +29,7 @@ fun ListItem(item: WeatherModel, currentDay: MutableState<WeatherModel>) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 3.dp)
-            .clickable { currentDay.value = item },
+            .clickable { if(item.city != "") currentDay.value = item},
         colors = CardDefaults.cardColors(BlueLight)
     ) {
         Row(

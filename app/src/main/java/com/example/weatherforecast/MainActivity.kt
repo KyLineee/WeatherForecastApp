@@ -93,7 +93,6 @@ import java.util.TimeZone
 const val API_KEY = ""
 
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -436,6 +435,7 @@ fun getList(list: List<WeatherModel>, currentDay: MutableState<WeatherModel>) {
         ) { i, item ->
             ListItem(item, currentDay)
         }
+        item { chart() }
     }
 }
 
